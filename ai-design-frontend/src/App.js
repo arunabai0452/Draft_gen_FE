@@ -19,7 +19,7 @@ function App() {
     formData.append("num_images_per_prompt", 1);
 
     try {
-      const res = await fetch("http://localhost:8000/generate_with_moodboard", {
+      const res = await fetch("https://unsure-practicedly-veronique.ngrok-free.dev/generate_with_moodboard", {
         method: "POST",
         body: formData,
       });
