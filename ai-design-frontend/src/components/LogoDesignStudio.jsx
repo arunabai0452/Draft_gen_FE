@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Sparkles, Palette, Type, Send, Loader2, Download } from 'lucide-react';
+import { Star, Sparkles, Send, Loader2, Download } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -10,7 +10,7 @@ const LogoDesignStudio = () => {
   const [moodboards, setMoodboards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
-  const [feedback, setFeedback] = useState('');
+  const [feedback, setFeedback] = useState({});
   const [selectedMoodboardId, setSelectedMoodboardId] = useState(null);
 
   // Form state
@@ -23,22 +23,33 @@ const LogoDesignStudio = () => {
     dislikes: ''
   });
 
-  // Download moodboard image
+  // Download moodboard image with CORS support and fallback
   const downloadMoodboard = async (imageUrl, brandName, version) => {
     try {
-      const response = await fetch(imageUrl);
+      const response = await fetch(imageUrl, {
+        mode: 'cors',
+        credentials: 'omit'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch image');
+      }
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${brandName}_moodboard_v${version}.png`;
+      a.download = `${brandName.replace(/\s+/g, '_')}_moodboard_v${version}.png`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
     } catch (error) {
       console.error('Error downloading moodboard:', error);
-      alert('Failed to download moodboard');
+      window.open(imageUrl, '_blank');
     }
   };
 
@@ -80,7 +91,6 @@ const LogoDesignStudio = () => {
         const data = await response.json();
         alert('Moodboard created successfully!');
         
-        // Switch to gallery and show the new moodboard
         setSelectedBrand(formData.brand_name);
         setCurrentPage('gallery');
         await fetchBrands();
@@ -98,7 +108,8 @@ const LogoDesignStudio = () => {
 
   // Submit feedback
   const handleFeedback = async (moodboardId) => {
-    if (!feedback.trim()) {
+    const feedbackText = feedback[moodboardId];
+    if (!feedbackText?.trim()) {
       alert('Please enter feedback');
       return;
     }
@@ -112,13 +123,13 @@ const LogoDesignStudio = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           moodboard_id: moodboardId,
-          feedback_text: feedback,
+          feedback_text: feedbackText,
           brand_name: selectedBrand
         })
       });
 
       if (response.ok) {
-        setFeedback('');
+        setFeedback(prev => ({ ...prev, [moodboardId]: '' }));
         await fetchMoodboards(selectedBrand);
         alert('New moodboard version created!');
       } else {
@@ -154,17 +165,6 @@ const LogoDesignStudio = () => {
     return overallItem?.content?.image_url || null;
   };
 
-  // Get brand data (colors and typography)
-  const getBrandData = (moodboard) => {
-    const colorItem = moodboard.items?.find(item => item.type === 'color_palette' && item.metadata?.data_only);
-    const typoItem = moodboard.items?.find(item => item.type === 'typography' && item.metadata?.data_only);
-    
-    return {
-      colors: colorItem?.content || null,
-      typography: typoItem?.content || null
-    };
-  };
-
   useEffect(() => {
     if (currentPage === 'gallery') {
       fetchBrands();
@@ -179,7 +179,7 @@ const LogoDesignStudio = () => {
 
   // Render star rating
   const StarRating = ({ rating, onRate, moodboardId }) => (
-    <div className="flex gap-1">
+    <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
@@ -187,7 +187,7 @@ const LogoDesignStudio = () => {
           className="focus:outline-none transition-transform hover:scale-110"
         >
           <Star
-            size={20}
+            size={14}
             className={star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
           />
         </button>
@@ -331,29 +331,29 @@ const LogoDesignStudio = () => {
     );
   }
 
-  // Gallery Page
+  // Gallery Page - Grid Layout
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <Sparkles className="text-purple-600" size={32} />
-            <h1 className="text-3xl font-bold text-gray-800">Moodboard Gallery</h1>
+            <Sparkles className="text-purple-600" size={28} />
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Moodboard Gallery</h1>
           </div>
           <button
             onClick={() => setCurrentPage('create')}
-            className="px-6 py-2 bg-white rounded-lg shadow hover:shadow-md transition-shadow text-gray-700 font-medium"
+            className="px-4 sm:px-6 py-2 bg-white rounded-lg shadow hover:shadow-md transition-shadow text-gray-700 font-medium text-sm"
           >
             Create New
           </button>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">Select Brand</label>
           <select
             value={selectedBrand}
             onChange={(e) => setSelectedBrand(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
           >
             <option value="">-- Choose a brand --</option>
             {brands.map((brand) => (
@@ -363,25 +363,22 @@ const LogoDesignStudio = () => {
         </div>
 
         {selectedBrand && moodboards.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {moodboards.map((moodboard) => {
               const imageUrl = getOverallMoodboard(moodboard);
-              const brandData = getBrandData(moodboard);
 
               return (
-                <div key={moodboard._id} className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                  <div className="p-6 border-b border-gray-200">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-800">{moodboard.brand_name}</h3>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Version {moodboard.version} • {new Date(moodboard.created_at).toLocaleDateString()}
+                <div key={moodboard._id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+                  {/* Header */}
+                  <div className="p-2 sm:p-3 border-b border-gray-200">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="">
+                        <h3 className="text-xs sm:text-sm font-bold text-gray-800 truncate">
+                          {moodboard.brand_name}
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          v{moodboard.version}
                         </p>
-                        {moodboard.feedback_text && (
-                          <p className="text-sm text-purple-600 mt-2">
-                            Feedback: "{moodboard.feedback_text}"
-                          </p>
-                        )}
                       </div>
                       <StarRating
                         rating={moodboard.rating || 0}
@@ -391,65 +388,49 @@ const LogoDesignStudio = () => {
                     </div>
                   </div>
 
-                  <div className="p-6">
-                    {/* Overall Moodboard Image - Compact Size */}
-                    {imageUrl && (
-                      <div className="mb-6">
-                        <div className="flex justify-between items-center mb-3">
-                          <h4 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                            <Sparkles size={20} className="text-purple-600" />
-                            Brand Moodboard
-                          </h4>
-                          <button
-                            onClick={() => downloadMoodboard(imageUrl, moodboard.brand_name, moodboard.version)}
-                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-                          >
-                            <Download size={16} />
-                            Download
-                          </button>
-                        </div>
-                        <div className="max-w-lg mx-auto">
-                          <img
-                            src={imageUrl}
-                            alt="Overall Moodboard"
-                            className="w-full rounded-lg shadow-lg"
-                          />
-                        </div>
-                      </div>
-                    )}
+                  {/* Moodboard Image */}
+                  {imageUrl && (
+                    <div className="relative group">
+                      <img
+                        src={imageUrl}
+                        alt="Moodboard"
+                        className="w-full aspect-square object-cover"
+                      />
+                      {/* Download Button - Appears on Hover */}
+                      <button
+                        onClick={() => downloadMoodboard(imageUrl, moodboard.brand_name, moodboard.version)}
+                        className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-all text-xs font-medium shadow-lg opacity-0 group-hover:opacity-100"
+                      >
+                        <Download size={10} />
+                      </button>
+                    </div>
+                  )}
 
-                    
-                    {/* Feedback Section */}
-                    <div className="border-t border-gray-200 pt-4 max-w-lg mx-auto">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Refine Moodboard
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={feedback}
-                          onChange={(e) => setFeedback(e.target.value)}
-                          placeholder="e.g., Make it more colorful, add more patterns..."
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                        />
-                        <button
-                          onClick={() => handleFeedback(moodboard._id)}
-                          disabled={feedbackLoading && selectedMoodboardId === moodboard._id}
-                          className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center gap-2 text-sm font-medium"
-                        >
-                          {feedbackLoading && selectedMoodboardId === moodboard._id ? (
-                            <>
-                              <Loader2 className="animate-spin" size={16} />
-                              Generating...
-                            </>
-                          ) : (
-                            <>
-                              <Send size={16} />
-                              Refine
-                            </>
-                          )}
-                        </button>
-                      </div>
+                  {/* Feedback Section */}
+                  <div className="p-2 sm:p-3 border-t border-gray-100">
+                    <div className="flex gap-1">
+                      <input
+                        type="text"
+                        value={feedback[moodboard._id] || ''}
+                        onChange={(e) => setFeedback(prev => ({
+                          ...prev,
+                          [moodboard._id]: e.target.value
+                        }))}
+                        placeholder="Refine..."
+                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <button
+                        onClick={() => handleFeedback(moodboard._id)}
+                        disabled={feedbackLoading && selectedMoodboardId === moodboard._id}
+                        className="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50 flex items-center justify-center text-xs font-medium"
+                        title="Refine"
+                      >
+                        {feedbackLoading && selectedMoodboardId === moodboard._id ? (
+                          <Loader2 className="animate-spin" size={10} />
+                        ) : (
+                          <Send size={10} />
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -459,7 +440,7 @@ const LogoDesignStudio = () => {
         )}
 
         {selectedBrand && moodboards.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
+          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
             <p className="text-gray-500">No moodboards found for this brand.</p>
           </div>
         )}
@@ -469,4 +450,3 @@ const LogoDesignStudio = () => {
 };
 
 export default LogoDesignStudio;
-
