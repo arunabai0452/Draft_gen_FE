@@ -7,7 +7,7 @@
  * import { feedbackGroupsAPI } from './api/feedbackGroups';
  */
 
-const API_BASE_URL = 'https://difficile-convalescently-edelmira.ngrok-free.dev' || 'http://localhost:8000';
+const API_BASE_URL = 'https://difficile-convalescently-edelmira.ngrok-free.dev';
 
 export const feedbackGroupsAPI = {
   /**
