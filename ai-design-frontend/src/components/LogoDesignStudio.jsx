@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Send, Loader2, Download, TrendingUp, ArrowLeft, CheckCircle } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://difficile-convalescently-edelmira.ngrok-free.dev';
 
 const LogoDesignStudio = () => {
   const [currentPage, setCurrentPage] = useState('collect'); // 'collect', 'groups', 'generate'
