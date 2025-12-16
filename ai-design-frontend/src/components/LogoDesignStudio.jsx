@@ -4,6 +4,23 @@ import { Sparkles, Send, Loader2, Download, TrendingUp, ArrowLeft, CheckCircle }
 const API_BASE_URL = 'https://difficile-convalescently-edelmira.ngrok-free.dev';
 
 const LogoDesignStudio = () => {
+  // ============================================================================
+  // HELPER FUNCTION - Fetch with ngrok headers
+  // ============================================================================
+  const fetchWithHeaders = (url, options = {}) => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+        'Content-Type': 'application/json',
+        ...options.headers
+      }
+    });
+  };
+
+  // ============================================================================
+  // STATE MANAGEMENT
+  // ============================================================================
   const [currentPage, setCurrentPage] = useState('collect'); // 'collect', 'groups', 'generate'
   const [selectedBrand, setSelectedBrand] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,11 +47,18 @@ const LogoDesignStudio = () => {
   const [generating, setGenerating] = useState(false);
   const [generatingGroupId, setGeneratingGroupId] = useState(null);
 
-  // Download image helper
+  // ============================================================================
+  // DOWNLOAD IMAGE HELPER
+  // ============================================================================
   const downloadImage = async (imageUrl, brandName, version) => {
     try {
-      const response = await fetch(imageUrl, { mode: 'cors', credentials: 'omit' });
-      if (!response.ok) throw new Error('Failed to fetch');
+      const response = await fetch(imageUrl, { 
+        mode: 'cors', 
+        credentials: 'omit',
+        headers: { 'ngrok-skip-browser-warning': 'true' }
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch image');
       
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -50,11 +74,14 @@ const LogoDesignStudio = () => {
       }, 100);
     } catch (error) {
       console.error('Error downloading:', error);
+      alert('Could not download image. Opening in new tab...');
       window.open(imageUrl, '_blank');
     }
   };
 
-  // Submit preference to Vector DB
+  // ============================================================================
+  // SUBMIT PREFERENCE TO VECTOR DB
+  // ============================================================================
   const handleSubmitPreference = async (e) => {
     e.preventDefault();
     
@@ -76,22 +103,26 @@ const LogoDesignStudio = () => {
         dislikes: formData.dislikes
       };
 
-      // Store preference with all details in Vector DB
+      // Create comprehensive feedback text
       const feedbackText = `Brand: ${selectedBrand}. Preference: ${preferenceText}. Tone: ${formData.tone}. Style: ${formData.visual_style}. Colors: ${formData.colors.join(', ')}. ${formData.dislikes ? 'Avoid: ' + formData.dislikes : ''}`;
 
-      const response = await fetch(`${API_BASE_URL}/api/feedback/store`, {
+      console.log('📤 Submitting preference:', { brand: selectedBrand, text: feedbackText });
+
+      const response = await fetchWithHeaders(`${API_BASE_URL}/api/feedback/store`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           feedback_text: feedbackText,
           brand_name: selectedBrand,
           moodboard_id: 'preference_collection',
-          metadata: preferenceData // Store structured data in metadata
+          metadata: preferenceData
         })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        alert('Preference stored successfully!');
+        console.log('✅ Preference stored:', data);
+        alert('✅ Preference stored successfully in Vector DB!');
         setPreferenceText('');
         // Reset form but keep brand name
         setFormData({
@@ -101,35 +132,56 @@ const LogoDesignStudio = () => {
           dislikes: ''
         });
       } else {
-        alert('Failed to store preference');
+        console.error('❌ Server error:', data);
+        alert(`Failed to store preference: ${data.detail || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error submitting preference:', error);
-      alert('Error storing preference');
+      console.error('❌ Network error:', error);
+      alert(`Error storing preference: ${error.message}`);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Fetch and group preferences
+  // ============================================================================
+  // FETCH FEEDBACK GROUPS
+  // ============================================================================
   const fetchFeedbackGroups = async (brandName) => {
     setLoading(true);
+    
     try {
-      const response = await fetch(
+      console.log(`📊 Fetching groups for: ${brandName} (threshold: ${similarityThreshold})`);
+      
+      const response = await fetchWithHeaders(
         `${API_BASE_URL}/api/feedback-groups/${brandName}?similarity_threshold=${similarityThreshold}&include_summary=true`
       );
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log('✅ Groups received:', data);
+      
       setFeedbackGroups(data.groups || []);
       setSelectedBrand(brandName);
+      
+      if (!data.groups || data.groups.length === 0) {
+        alert('No feedback groups found for this brand. Try collecting some preferences first!');
+      }
     } catch (error) {
-      console.error('Error fetching feedback groups:', error);
+      console.error('❌ Error fetching groups:', error);
+      alert(`Error loading groups: ${error.message}`);
       setFeedbackGroups([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Generate 2 images when card is clicked
+  // ============================================================================
+  // GENERATE IMAGES FROM GROUP
+  // ============================================================================
   const handleCardClick = async (group) => {
     setGeneratingGroupId(group.group_id);
     setGenerating(true);
@@ -137,37 +189,42 @@ const LogoDesignStudio = () => {
     setSelectedGroup(group);
     
     try {
-      // Generate 2 images from this group
-      const response = await fetch(`${API_BASE_URL}/api/generate-images`, {
+      console.log('🎨 Generating images for group:', group.group_id);
+      
+      const response = await fetchWithHeaders(`${API_BASE_URL}/api/generate-images`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           brand_name: selectedBrand,
           group_id: group.group_id,
           feedback_items: group.items,
           group_summary: group.summary,
-          original_input: null, // No original moodboard
+          original_input: null,
           n_variations: 2
         })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
+        console.log('✅ Images generated:', data);
         setGeneratedImages(data.images || []);
         setCurrentPage('generate');
       } else {
-        alert('Failed to generate images');
+        console.error('❌ Generation failed:', data);
+        alert(`Failed to generate images: ${data.detail || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error generating images:', error);
-      alert('Error generating images');
+      console.error('❌ Generation error:', error);
+      alert(`Error generating images: ${error.message}`);
     } finally {
       setGenerating(false);
       setGeneratingGroupId(null);
     }
   };
 
-  // Get relevance color
+  // ============================================================================
+  // HELPER: GET RELEVANCE COLOR
+  // ============================================================================
   const getRelevanceColor = (relevance) => {
     if (relevance >= 0.9) return 'bg-gradient-to-r from-green-500 to-emerald-500';
     if (relevance >= 0.8) return 'bg-gradient-to-r from-blue-500 to-indigo-500';
@@ -175,11 +232,14 @@ const LogoDesignStudio = () => {
     return 'bg-gradient-to-r from-gray-500 to-slate-500';
   };
 
-  // Grouped Feedback Cards Page
+  // ============================================================================
+  // PAGE: GROUPED FEEDBACK CARDS
+  // ============================================================================
   if (currentPage === 'groups') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4 sm:p-8">
         <div className="max-w-6xl mx-auto">
+          {/* Header */}
           <div className="mb-8">
             <button
               onClick={() => setCurrentPage('collect')}
@@ -196,11 +256,13 @@ const LogoDesignStudio = () => {
             </div>
           </div>
 
+          {/* Loading State */}
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="animate-spin text-purple-600" size={48} />
             </div>
           ) : feedbackGroups.length === 0 ? (
+            /* Empty State */
             <div className="bg-white rounded-xl shadow-lg p-12 text-center">
               <Sparkles className="mx-auto text-gray-400" size={64} />
               <h3 className="mt-4 text-xl font-semibold text-gray-800">No Preferences Yet</h3>
@@ -213,6 +275,7 @@ const LogoDesignStudio = () => {
               </button>
             </div>
           ) : (
+            /* Groups Grid */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {feedbackGroups.map((group) => (
                 <div
@@ -273,11 +336,14 @@ const LogoDesignStudio = () => {
     );
   }
 
-  // Image Generation Results Page
+  // ============================================================================
+  // PAGE: IMAGE GENERATION RESULTS
+  // ============================================================================
   if (currentPage === 'generate') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4 sm:p-8">
         <div className="max-w-6xl mx-auto">
+          {/* Header */}
           <div className="mb-8">
             <button
               onClick={() => setCurrentPage('groups')}
@@ -390,10 +456,13 @@ const LogoDesignStudio = () => {
     );
   }
 
-  // Collect Preferences Page (Main Page)
+  // ============================================================================
+  // PAGE: COLLECT PREFERENCES (MAIN PAGE)
+  // ============================================================================
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4 sm:p-8">
       <div className="max-w-4xl mx-auto">
+        {/* Header */}
         <div className="flex items-center justify-center mb-8">
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-2">
@@ -410,6 +479,7 @@ const LogoDesignStudio = () => {
           <p className="text-gray-600 mb-6">Enter brand details and user preferences. We'll store it in Vector DB and group with similar preferences.</p>
           
           <form onSubmit={handleSubmitPreference} className="space-y-6">
+            {/* Brand Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Brand Name *</label>
               <input
@@ -422,6 +492,7 @@ const LogoDesignStudio = () => {
               />
             </div>
 
+            {/* User Preference */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">User Preference/Description *</label>
               <textarea
@@ -437,6 +508,7 @@ const LogoDesignStudio = () => {
               </p>
             </div>
 
+            {/* Tone and Style */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
@@ -468,6 +540,7 @@ const LogoDesignStudio = () => {
               </div>
             </div>
 
+            {/* Colors */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Colors</label>
               <div className="flex gap-3">
@@ -489,6 +562,7 @@ const LogoDesignStudio = () => {
               </div>
             </div>
 
+            {/* Dislikes */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Dislikes (Optional)</label>
               <input
@@ -500,6 +574,7 @@ const LogoDesignStudio = () => {
               />
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={submitting}
@@ -520,7 +595,7 @@ const LogoDesignStudio = () => {
           </form>
         </div>
 
-        {/* View Groups Button */}
+        {/* View Groups Section */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h3 className="text-lg font-bold text-gray-800 mb-3">Ready to Analyze?</h3>
           <p className="text-gray-600 mb-4">
@@ -552,6 +627,7 @@ const LogoDesignStudio = () => {
             </p>
           </div>
 
+          {/* View Groups Form */}
           <form onSubmit={(e) => {
             e.preventDefault();
             if (selectedBrand.trim()) {
