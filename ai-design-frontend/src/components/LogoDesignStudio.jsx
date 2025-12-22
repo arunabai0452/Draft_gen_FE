@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, Send, Loader2, Download, TrendingUp, ArrowLeft, CheckCircle } from 'lucide-react';
 
-const API_BASE_URL = 'https://difficile-convalescently-edelmira.ngrok-free.dev';
+const API_BASE_URL = 'http://localhost:8000';
 
 const LogoDesignStudio = () => {
   // ============================================================================
@@ -24,7 +24,7 @@ const LogoDesignStudio = () => {
   const [currentPage, setCurrentPage] = useState('collect'); // 'collect', 'groups', 'generate'
   const [selectedBrand, setSelectedBrand] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   // Preference collection state
   const [preferenceText, setPreferenceText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -41,7 +41,7 @@ const LogoDesignStudio = () => {
   // Feedback groups state
   const [feedbackGroups, setFeedbackGroups] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState(null);
-  
+
   // Image generation state
   const [generatedImages, setGeneratedImages] = useState([]);
   const [generating, setGenerating] = useState(false);
@@ -52,14 +52,14 @@ const LogoDesignStudio = () => {
   // ============================================================================
   const downloadImage = async (imageUrl, brandName, version) => {
     try {
-      const response = await fetch(imageUrl, { 
-        mode: 'cors', 
+      const response = await fetch(imageUrl, {
+        mode: 'cors',
         credentials: 'omit',
         headers: { 'ngrok-skip-browser-warning': 'true' }
       });
-      
+
       if (!response.ok) throw new Error('Failed to fetch image');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -67,7 +67,7 @@ const LogoDesignStudio = () => {
       a.download = `${brandName.replace(/\s+/g, '_')}_v${version}.png`;
       document.body.appendChild(a);
       a.click();
-      
+
       setTimeout(() => {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
@@ -84,7 +84,7 @@ const LogoDesignStudio = () => {
   // ============================================================================
   const handleSubmitPreference = async (e) => {
     e.preventDefault();
-    
+
     if (!preferenceText.trim() || !selectedBrand.trim()) {
       alert('Please enter both brand name and preference description');
       return;
@@ -148,25 +148,25 @@ const LogoDesignStudio = () => {
   // ============================================================================
   const fetchFeedbackGroups = async (brandName) => {
     setLoading(true);
-    
+
     try {
       console.log(`📊 Fetching groups for: ${brandName} (threshold: ${similarityThreshold})`);
-      
+
       const response = await fetchWithHeaders(
         `${API_BASE_URL}/api/feedback-groups/${brandName}?similarity_threshold=${similarityThreshold}&include_summary=true`
       );
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || `HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       console.log('✅ Groups received:', data);
-      
+
       setFeedbackGroups(data.groups || []);
       setSelectedBrand(brandName);
-      
+
       if (!data.groups || data.groups.length === 0) {
         alert('No feedback groups found for this brand. Try collecting some preferences first!');
       }
@@ -187,10 +187,10 @@ const LogoDesignStudio = () => {
     setGenerating(true);
     setGeneratedImages([]);
     setSelectedGroup(group);
-    
+
     try {
       console.log('🎨 Generating images for group:', group.group_id);
-      
+
       const response = await fetchWithHeaders(`${API_BASE_URL}/api/generate-images`, {
         method: 'POST',
         body: JSON.stringify({
@@ -226,10 +226,10 @@ const LogoDesignStudio = () => {
   // HELPER: GET RELEVANCE COLOR
   // ============================================================================
   const getRelevanceColor = (relevance) => {
-    if (relevance >= 0.9) return 'bg-gradient-to-r from-green-500 to-emerald-500';
-    if (relevance >= 0.8) return 'bg-gradient-to-r from-blue-500 to-indigo-500';
-    if (relevance >= 0.7) return 'bg-gradient-to-r from-yellow-500 to-orange-500';
-    return 'bg-gradient-to-r from-gray-500 to-slate-500';
+    if (relevance >= 0.9) return 'bg-gradient-to-r from-emerald-400 to-teal-500';
+    if (relevance >= 0.8) return 'bg-gradient-to-r from-cyan-400 to-blue-500';
+    if (relevance >= 0.7) return 'bg-gradient-to-r from-amber-400 to-orange-500';
+    return 'bg-gradient-to-r from-slate-400 to-gray-500';
   };
 
   // ============================================================================
@@ -237,20 +237,20 @@ const LogoDesignStudio = () => {
   // ============================================================================
   if (currentPage === 'groups') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4 sm:p-8">
+      <div className="min-h-screen bg-[#00303C] p-4 sm:p-8" style={{ fontFamily: "'DIN', 'DIN Bold', 'DIN Alternate', Arial, sans-serif" }}>
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <button
               onClick={() => setCurrentPage('collect')}
-              className="text-purple-600 hover:text-purple-700 mb-4 flex items-center gap-2 font-medium"
+              className="text-cyan-400 hover:text-cyan-300 mb-4 flex items-center gap-2 font-medium transition-colors"
             >
               <ArrowLeft size={20} />
               Back to Collect Preferences
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-800">Grouped Preferences</h1>
-              <p className="text-gray-600 mt-2">
+              <h1 className="text-3xl font-bold text-white">Grouped Preferences</h1>
+              <p className="text-gray-300 mt-2">
                 {selectedBrand} • {feedbackGroups.length} groups • Click any card to generate images
               </p>
             </div>
@@ -259,17 +259,17 @@ const LogoDesignStudio = () => {
           {/* Loading State */}
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="animate-spin text-purple-600" size={48} />
+              <Loader2 className="animate-spin text-cyan-400" size={48} />
             </div>
           ) : feedbackGroups.length === 0 ? (
             /* Empty State */
-            <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-              <Sparkles className="mx-auto text-gray-400" size={64} />
-              <h3 className="mt-4 text-xl font-semibold text-gray-800">No Preferences Yet</h3>
-              <p className="mt-2 text-gray-600">Collect some preferences first to see grouped insights.</p>
+            <div className="bg-[#004454] rounded-xl shadow-2xl p-12 text-center border border-cyan-900/30">
+              <Sparkles className="mx-auto text-cyan-400" size={64} />
+              <h3 className="mt-4 text-xl font-semibold text-white">No Preferences Yet</h3>
+              <p className="mt-2 text-gray-300">Collect some preferences first to see grouped insights.</p>
               <button
                 onClick={() => setCurrentPage('collect')}
-                className="mt-6 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="mt-6 px-6 py-3 bg-gradient-to-r from-cyan-500 to-teal-600 text-white rounded-lg hover:from-cyan-600 hover:to-teal-700 transition-all font-semibold"
               >
                 Collect Preferences
               </button>
@@ -281,13 +281,13 @@ const LogoDesignStudio = () => {
                 <div
                   key={group.group_id}
                   onClick={() => !generating && handleCardClick(group)}
-                  className="bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer transform transition-all hover:scale-105 hover:shadow-2xl relative"
+                  className="bg-[#004454] rounded-xl shadow-2xl overflow-hidden cursor-pointer transform transition-all hover:scale-105 hover:shadow-cyan-500/20 hover:shadow-2xl relative border border-cyan-900/30"
                 >
                   {/* Relevance Badge */}
                   <div className={`${getRelevanceColor(group.relevance)} p-4 text-white`}>
                     <div className="flex items-center justify-between">
                       <span className="text-2xl font-bold">Group {group.group_id}</span>
-                      <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full">
+                      <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm">
                         <TrendingUp size={16} />
                         <span className="font-semibold">{(group.relevance * 100).toFixed(0)}%</span>
                       </div>
@@ -297,22 +297,22 @@ const LogoDesignStudio = () => {
 
                   {/* Summary */}
                   <div className="p-6">
-                    <p className="text-gray-700 leading-relaxed line-clamp-4 mb-4">
+                    <p className="text-gray-200 leading-relaxed line-clamp-4 mb-4">
                       {group.summary}
                     </p>
 
                     {/* Key Themes */}
                     {group.key_themes && (
                       <div className="mb-4">
-                        <h4 className="text-sm font-semibold text-gray-800 mb-2">Key Themes:</h4>
-                        <p className="text-sm text-gray-600 line-clamp-3">{group.key_themes}</p>
+                        <h4 className="text-sm font-semibold text-cyan-400 mb-2">Key Themes:</h4>
+                        <p className="text-sm text-gray-300 line-clamp-3">{group.key_themes}</p>
                       </div>
                     )}
 
                     {/* Generate Button */}
                     <button
                       disabled={generating}
-                      className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full py-3 bg-gradient-to-r from-cyan-500 to-teal-600 text-white rounded-lg font-semibold hover:from-cyan-600 hover:to-teal-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {generating && generatingGroupId === group.group_id ? (
                         <>
@@ -341,23 +341,23 @@ const LogoDesignStudio = () => {
   // ============================================================================
   if (currentPage === 'generate') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4 sm:p-8">
+      <div className="min-h-screen bg-[#00303C] p-4 sm:p-8" style={{ fontFamily: "'DIN', 'DIN Bold', 'DIN Alternate', Arial, sans-serif" }}>
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <button
               onClick={() => setCurrentPage('groups')}
-              className="text-purple-600 hover:text-purple-700 mb-4 flex items-center gap-2 font-medium"
+              className="text-cyan-400 hover:text-cyan-300 mb-4 flex items-center gap-2 font-medium transition-colors"
             >
               <ArrowLeft size={20} />
               Back to Groups
             </button>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <Sparkles className="text-purple-600" size={32} />
+            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+              <Sparkles className="text-cyan-400" size={32} />
               Generated Images
             </h1>
             {selectedGroup && (
-              <p className="text-gray-600 mt-2">
+              <p className="text-gray-300 mt-2">
                 {selectedBrand} • Group {selectedGroup.group_id} • {(selectedGroup.relevance * 100).toFixed(0)}% Relevance
               </p>
             )}
@@ -365,13 +365,13 @@ const LogoDesignStudio = () => {
 
           {/* Group Summary Card */}
           {selectedGroup && (
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-              <h2 className="text-xl font-bold text-gray-800 mb-3">Enhanced Prompt</h2>
-              <p className="text-gray-700 leading-relaxed mb-4">{selectedGroup.summary}</p>
+            <div className="bg-[#004454] rounded-xl shadow-2xl p-6 mb-8 border border-cyan-900/30">
+              <h2 className="text-xl font-bold text-white mb-3">Enhanced Prompt</h2>
+              <p className="text-gray-200 leading-relaxed mb-4">{selectedGroup.summary}</p>
               {selectedGroup.key_themes && (
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-800 mb-2">Key Themes:</h4>
-                  <p className="text-gray-700 text-sm">{selectedGroup.key_themes}</p>
+                <div className="bg-cyan-900/20 rounded-lg p-4 border border-cyan-800/30">
+                  <h4 className="font-semibold text-cyan-400 mb-2">Key Themes:</h4>
+                  <p className="text-gray-200 text-sm">{selectedGroup.key_themes}</p>
                 </div>
               )}
             </div>
@@ -379,11 +379,11 @@ const LogoDesignStudio = () => {
 
           {/* Success Banner */}
           {generatedImages.length > 0 && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-8 flex items-center gap-3">
-              <CheckCircle className="text-green-600" size={24} />
+            <div className="bg-emerald-900/30 border border-emerald-600/50 rounded-xl p-4 mb-8 flex items-center gap-3">
+              <CheckCircle className="text-emerald-400" size={24} />
               <div>
-                <p className="font-semibold text-green-900">Images Generated Successfully!</p>
-                <p className="text-sm text-green-700">{generatedImages.length} variations from the same enhanced prompt</p>
+                <p className="font-semibold text-emerald-300">Images Generated Successfully!</p>
+                <p className="text-sm text-emerald-400">{generatedImages.length} variations from the same enhanced prompt</p>
               </div>
             </div>
           )}
@@ -392,8 +392,8 @@ const LogoDesignStudio = () => {
           {generatedImages.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {generatedImages.map((image, idx) => (
-                <div key={idx} className="bg-white rounded-xl shadow-lg overflow-hidden">
-                  <div className="relative aspect-square bg-gray-100">
+                <div key={idx} className="bg-[#004454] rounded-xl shadow-2xl overflow-hidden border border-cyan-900/30">
+                  <div className="relative aspect-square bg-gray-900">
                     <img
                       src={image.url}
                       alt={`Variation ${image.variation_number}`}
@@ -402,34 +402,34 @@ const LogoDesignStudio = () => {
                     />
                     <button
                       onClick={() => downloadImage(image.url, selectedBrand, image.variation_number)}
-                      className="absolute top-4 right-4 p-3 bg-white rounded-full shadow-lg hover:bg-gray-100 transition-colors"
+                      className="absolute top-4 right-4 p-3 bg-cyan-500 hover:bg-cyan-600 rounded-full shadow-lg transition-colors"
                       title="Download"
                     >
-                      <Download size={20} className="text-gray-700" />
+                      <Download size={20} className="text-white" />
                     </button>
                   </div>
-                  
-                  <div className="p-6 border-t border-gray-200">
+
+                  <div className="p-6 border-t border-cyan-900/30">
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <p className="text-lg font-bold text-gray-800">Variation {image.variation_number}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-lg font-bold text-white">Variation {image.variation_number}</p>
+                        <p className="text-xs text-gray-400 mt-1">
                           Generated {new Date(image.created_at).toLocaleString()}
                         </p>
                       </div>
                       <button
                         onClick={() => downloadImage(image.url, selectedBrand, image.variation_number)}
-                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2"
+                        className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-600 text-white rounded-lg hover:from-cyan-600 hover:to-teal-700 transition-all font-medium flex items-center gap-2"
                       >
                         <Download size={16} />
                         Download
                       </button>
                     </div>
-                    
+
                     {image.revised_prompt && (
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-xs font-semibold text-gray-600 mb-1">DALL-E Revised:</p>
-                        <p className="text-sm text-gray-700">{image.revised_prompt}</p>
+                      <div className="bg-[#00303C] rounded-lg p-4 border border-cyan-900/30">
+                        <p className="text-xs font-semibold text-cyan-400 mb-1">DALL-E Revised:</p>
+                        <p className="text-sm text-gray-300">{image.revised_prompt}</p>
                       </div>
                     )}
                   </div>
@@ -444,7 +444,7 @@ const LogoDesignStudio = () => {
               <button
                 onClick={() => selectedGroup && handleCardClick(selectedGroup)}
                 disabled={generating}
-                className="px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 inline-flex items-center gap-2"
+                className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-teal-600 text-white rounded-lg font-semibold hover:from-cyan-600 hover:to-teal-700 transition-all disabled:opacity-50 inline-flex items-center gap-2"
               >
                 <Sparkles size={20} />
                 {generating ? 'Generating...' : 'Generate 2 More Variations'}
@@ -460,89 +460,104 @@ const LogoDesignStudio = () => {
   // PAGE: COLLECT PREFERENCES (MAIN PAGE)
   // ============================================================================
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4 sm:p-8">
+    <div className="min-h-screen bg-[#00303C] p-4 sm:p-8" style={{ fontFamily: "'DIN', 'DIN Bold', 'DIN Alternate', Arial, sans-serif" }}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-center mb-8">
+        <div className="flex items-center justify-center mb-2">
           <div className="text-center">
             <div className="flex items-center justify-center gap-3 mb-2">
-              <Sparkles className="text-purple-600" size={40} />
-              <h1 className="text-4xl font-bold text-gray-800">Brand Preference Studio</h1>
+              <img src="/MF_SquareLogo_White.png" width={80} />
+              <h1 className="text-3xl font-bold text-white">Brand Visualization Tool</h1>
             </div>
-            <p className="text-gray-600">Collect preferences → Group by relevance → Generate AI images</p>
           </div>
         </div>
 
         {/* Collect Preference Form */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-          <h2 className="text-2xl font-bold mb-2 text-gray-800">Collect User Preference</h2>
-          <p className="text-gray-600 mb-6">Enter brand details and user preferences. We'll store it in Vector DB and group with similar preferences.</p>
-          
+        <div className="bg-[#004454] rounded-2xl shadow-2xl p-8 mb-6 border border-cyan-900/30">
+          <h2 className="text-xl font-bold mb-2 text-white">Tell us about your brand vision!</h2>
+          <p className="text-sm mb-4 italic">"We want you to think from both the perspective of your personal preference as well as what your customers will find value in and allow you to differentiate yourself in your market."
+          </p>
+
           <form onSubmit={handleSubmitPreference} className="space-y-6">
             {/* Brand Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Brand Name *</label>
+              <label className="block text-sm font-medium text-gray-200 mb-2">Brand Name *</label>
               <input
                 type="text"
                 required
                 value={selectedBrand}
                 onChange={(e) => setSelectedBrand(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg"
-                placeholder="e.g., Nescafe, Nike, Coca-Cola"
+                className="w-full px-3 py-3 bg-[#00303C] border border-cyan-800 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-sm text-white placeholder-gray-500"
+                placeholder="What is your brand's name?"
               />
             </div>
 
             {/* User Preference */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">User Preference/Description *</label>
+              <label className="block text-sm font-medium text-gray-200 mb-2">Preferences *</label>
               <textarea
                 required
                 value={preferenceText}
                 onChange={(e) => setPreferenceText(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="e.g., Modern coffee brand with vibrant energy..."
+                className="w-full text-sm px-4 py-3 bg-[#00303C] border border-cyan-800 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-white placeholder-gray-500"
+                placeholder="Please use as many adjectives to describe in as much detail as you can the brand vision. You can share things like: image style, image content, existing brands you like, font style, etc. Think about if your brand is more safe, or if your brand is more vibrant and loud."
               />
-              <p className="mt-2 text-sm text-gray-500">
-                Describe what the user wants for this brand's design
-              </p>
             </div>
 
             {/* Tone and Style */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tone</label>
+                <label className="block text-sm font-medium text-gray-200 mb-2">Personality</label>
                 <select
                   value={formData.tone}
-                  onChange={(e) => setFormData({...formData, tone: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  onChange={(e) => setFormData({ ...formData, tone: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#00303C] border border-cyan-800 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-white"
                 >
                   <option value="modern">Modern</option>
                   <option value="luxury">Luxury</option>
                   <option value="playful">Playful</option>
                   <option value="professional">Professional</option>
                   <option value="vintage">Vintage</option>
+
+                  <option value="sleek">Sleek</option>
+                  <option value="futuristic">Futuristic</option>
+                  <option value="classic">Classic</option>
+                  <option value="sporty">Sporty</option>
+                  <option value="bold">Bold</option>
+                  <option value="loud">Loud</option>
+                  <option value="holistic">Holistic</option>
+                  <option value="adventurous">Adventurous</option>
+                  <option value="wild">Wild</option>
+                  <option value="quirky">Quirky</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Visual Style</label>
+                <label className="block text-sm font-medium text-gray-200 mb-2">Visual Style</label>
                 <select
                   value={formData.visual_style}
-                  onChange={(e) => setFormData({...formData, visual_style: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  onChange={(e) => setFormData({ ...formData, visual_style: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#00303C] border border-cyan-800 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-white"
                 >
                   <option value="minimalist">Minimalist</option>
                   <option value="retro">Retro</option>
                   <option value="corporate">Corporate</option>
                   <option value="organic">Organic</option>
+
+                  <option value="industrial">Industrial</option>
+                  <option value="rigid">Rigid</option>
+                  <option value="geometric">Geometric</option>
+                  <option value="dark">Dark</option>
+                  <option value="vibrant">Vibrant</option>
+                  <option value="abstract">Abstract</option>
                 </select>
               </div>
             </div>
 
             {/* Colors */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Colors</label>
+              <label className="block text-sm font-medium text-gray-200 mb-2">Preferred Colors</label>
               <div className="flex gap-3">
                 {formData.colors.map((color, index) => (
                   <div key={index} className="flex flex-col items-center gap-2">
@@ -552,11 +567,11 @@ const LogoDesignStudio = () => {
                       onChange={(e) => {
                         const newColors = [...formData.colors];
                         newColors[index] = e.target.value;
-                        setFormData({...formData, colors: newColors});
+                        setFormData({ ...formData, colors: newColors });
                       }}
-                      className="w-20 h-20 rounded-lg cursor-pointer border-2 border-gray-300"
+                      className="w-20 h-20 rounded-lg cursor-pointer border-2 border-cyan-700"
                     />
-                    <span className="text-xs text-gray-500">Color {index + 1}</span>
+                    <span className="text-xs text-gray-400">Color {index + 1}</span>
                   </div>
                 ))}
               </div>
@@ -564,12 +579,13 @@ const LogoDesignStudio = () => {
 
             {/* Dislikes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Dislikes (Optional)</label>
+              <label className="block text-sm font-medium text-gray-200 mb-2">Dislikes *</label>
               <input
                 type="text"
+                required
                 value={formData.dislikes}
-                onChange={(e) => setFormData({...formData, dislikes: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                onChange={(e) => setFormData({ ...formData, dislikes: e.target.value })}
+                className="w-full px-4 py-2 bg-[#00303C] border border-cyan-800 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-white placeholder-gray-500"
                 placeholder="e.g., No serif fonts, avoid dark colors"
               />
             </div>
@@ -578,7 +594,7 @@ const LogoDesignStudio = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-gradient-to-r from-cyan-500 to-teal-600 text-white rounded-lg font-semibold hover:from-cyan-600 hover:to-teal-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {submitting ? (
                 <>
@@ -588,7 +604,7 @@ const LogoDesignStudio = () => {
               ) : (
                 <>
                   <Send size={20} />
-                  Store Preference in Vector DB
+                  Submit
                 </>
               )}
             </button>
@@ -596,15 +612,15 @@ const LogoDesignStudio = () => {
         </div>
 
         {/* View Groups Section */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-3">Ready to Analyze?</h3>
-          <p className="text-gray-600 mb-4">
+        <div className="bg-[#004454] rounded-xl shadow-2xl p-6 border border-cyan-900/30">
+          <h3 className="text-lg font-bold text-white mb-3">Ready to Analyze?</h3>
+          <p className="text-gray-300 mb-4">
             After collecting multiple preferences, view them grouped by relevance with AI-generated summaries.
           </p>
 
           {/* Similarity Threshold Slider */}
-          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mb-4 p-4 bg-[#00303C] rounded-lg border border-cyan-900/30">
+            <label className="block text-sm font-medium text-gray-200 mb-2">
               Grouping Sensitivity: {(similarityThreshold * 100).toFixed(0)}%
             </label>
             <input
@@ -614,16 +630,16 @@ const LogoDesignStudio = () => {
               step="5"
               value={similarityThreshold * 100}
               onChange={(e) => setSimilarityThreshold(parseInt(e.target.value) / 100)}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+              className="w-full h-2 bg-cyan-900 rounded-lg appearance-none cursor-pointer accent-cyan-500"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <div className="flex justify-between text-xs text-gray-400 mt-2">
               <span>60% (More groups)</span>
               <span>95% (Fewer groups)</span>
             </div>
-            <p className="text-xs text-gray-600 mt-2">
+            <p className="text-xs text-gray-400 mt-2">
               {similarityThreshold >= 0.9 ? '🔹 Very Strict - Creates many small groups' :
-               similarityThreshold >= 0.8 ? '🔷 Balanced - Recommended setting' :
-               '🔶 Loose - Combines similar preferences'}
+                similarityThreshold >= 0.8 ? '🔷 Balanced - Recommended setting' :
+                  '🔶 Loose - Combines similar preferences'}
             </p>
           </div>
 
@@ -642,11 +658,11 @@ const LogoDesignStudio = () => {
               value={selectedBrand}
               onChange={(e) => setSelectedBrand(e.target.value)}
               placeholder="Enter brand name"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+              className="flex-1 px-4 py-2 bg-[#00303C] border border-cyan-800 rounded-lg focus:ring-2 focus:ring-cyan-500 text-white placeholder-gray-500"
             />
             <button
               type="submit"
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center gap-2"
+              className="px-6 py-2 bg-gradient-to-r from-cyan-500 to-teal-600 text-white rounded-lg hover:from-cyan-600 hover:to-teal-700 transition-all font-medium flex items-center gap-2"
             >
               <TrendingUp size={20} />
               View Grouped Preferences
@@ -655,23 +671,23 @@ const LogoDesignStudio = () => {
         </div>
 
         {/* Info Card */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <h4 className="font-semibold text-blue-900 mb-2">How It Works:</h4>
-          <ol className="text-sm text-blue-800 space-y-2">
+        <div className="mt-6 bg-cyan-900/20 border border-cyan-800/50 rounded-xl p-6">
+          <h4 className="font-semibold text-cyan-300 mb-2">How It Works:</h4>
+          <ol className="text-sm text-gray-300 space-y-2">
             <li className="flex gap-2">
-              <span className="font-bold">1.</span>
+              <span className="font-bold text-cyan-400">1.</span>
               <span>Collect detailed preferences from users (brand, colors, tone, style) and store in Vector DB</span>
             </li>
             <li className="flex gap-2">
-              <span className="font-bold">2.</span>
+              <span className="font-bold text-cyan-400">2.</span>
               <span>View grouped preferences by semantic similarity with GPT-enhanced summaries and relevance scores</span>
             </li>
             <li className="flex gap-2">
-              <span className="font-bold">3.</span>
+              <span className="font-bold text-cyan-400">3.</span>
               <span>Click any group card to generate 2 DALL-E image variations based on grouped preferences</span>
             </li>
             <li className="flex gap-2">
-              <span className="font-bold">4.</span>
+              <span className="font-bold text-cyan-400">4.</span>
               <span>Download and share the generated designs</span>
             </li>
           </ol>

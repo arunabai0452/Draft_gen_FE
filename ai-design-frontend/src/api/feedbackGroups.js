@@ -7,7 +7,7 @@
  * import { feedbackGroupsAPI } from './api/feedbackGroups';
  */
 
-const API_BASE_URL = 'https://difficile-convalescently-edelmira.ngrok-free.dev';
+const API_BASE_URL = 'http://localhost:8000';
 
 /**
  * Helper: Add ngrok bypass headers to all requests
